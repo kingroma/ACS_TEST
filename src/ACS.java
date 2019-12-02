@@ -28,16 +28,18 @@ public class ACS {
 	public static SSLContext sslContext = null;
 	private static String stbId = "987654321";
 	// LAB0
-	// private static String ip = "185.3.160.117";
+	private static String ip = "185.3.160.117";
 	// PRODUCT VIP
-	private static String ip = "185.3.160.202";
+	// private static String ip = "185.3.160.202";
 	// PRODUCT 1 
 	// private static String ip = "10.11.6.49";
 	private static int port = 5222 ;
-	private static String messageId = "ABCDE-1234";
-	private static String ssl = "SSL";
-	private static String username = "";
-	private static String password = "";
+	private static String messageId = "ABCDE-";
+	private static String ssl = "TLS";
+	private static String username = "username";
+	private static String password = "password";
+	private static int loop = 1 ; 
+	private static int offset = 1000 ; 
 	
 	public static void main(String[] args) {
 		if ( args != null && args.length > 0 && args.length%2 == 0) {
@@ -71,7 +73,15 @@ public class ACS {
 					case "--password":
 						password = arg2 ; 
 						break;
+					case "--loop" : 
 					default : 
+						int temp = 1 ; 
+						try {
+							temp = Integer.parseInt(arg2);
+						} catch (Exception e) {
+							
+						}
+						loop = temp ; 
 						break;
 					}
 				}
@@ -88,11 +98,20 @@ public class ACS {
 		System.out.println("SSL :" + ssl);
 		System.out.println("Username : " + username);
 		System.out.println("Password : " + password);
+		System.out.println("Loooooop : " + loop);
 		
 		System.out.println();
 		if ( ssl != null && !ssl.isEmpty() )
 			setSSL();
+		for ( int i = 0 ; i < loop ; i ++ ) {
+			System.out.println("==Looop Number : " + i + "=========================");
+			sendIq();
+		}
 		
+
+	}
+	
+	public static void sendIq() {
 		try {
 			ConnectionConfiguration gconfig = 
 					new ConnectionConfiguration(
@@ -120,43 +139,43 @@ public class ACS {
 				@Override
 				public void reconnectionSuccessful() {
 					// TODO Auto-generated method stub
-					System.out.println("reconnectionSuccessful done");
+					// System.out.println("reconnectionSuccessful done");
 				}
 				
 				@Override
 				public void reconnectionFailed(Exception e) {
 					// TODO Auto-generated method stub
-					System.out.println("reconnectionFailed done");
+					// System.out.println("reconnectionFailed done");
 				}
 				
 				@Override
 				public void reconnectingIn(int seconds) {
 					// TODO Auto-generated method stub
-					System.out.println("reconnectingIn done");
+					// System.out.println("reconnectingIn done");
 				}
 				
 				@Override
 				public void connectionClosedOnError(Exception e) {
 					// TODO Auto-generated method stub
-					System.out.println("connectionClosedOnError done");
+					System.out.println("connectionClosedOnError");
 				}
 				
 				@Override
 				public void connectionClosed() {
 					// TODO Auto-generated method stub
-					System.out.println("connectionClosed done");
+					// System.out.println("connectionClosed done");
 				}
 				
 				@Override
 				public void connected(XMPPConnection connection) {
 					// TODO Auto-generated method stub
-					System.out.println("connected done");
+					// System.out.println("connected done");
 				}
 				
 				@Override
 				public void authenticated(XMPPConnection connection) {
 					// TODO Auto-generated method stub
-					System.out.println("authenticated done");
+					// System.out.println("authenticated done");
 				}
 			});	
 			
@@ -164,6 +183,7 @@ public class ACS {
 				
 				@Override
 				public void processPacket(Packet packet) throws NotConnectedException {
+					
 					System.out.println("receive : " + packet);
 				}
 			}, new PacketFilter() {
@@ -177,8 +197,10 @@ public class ACS {
 			conn.addPacketSendingListener(new PacketListener() {
 				@Override
 				public void processPacket(Packet packet) throws NotConnectedException {
-					System.out.println("send : "+packet);
-					
+					if ( packet != null && packet.toString() != null && 
+							!"available".equals(packet.toString().trim()) && !"unavailable".equals(packet.toString().trim()) ) {
+						System.out.println("send : "+packet);
+					}
 				}
 			}, new PacketFilter() {
 				
@@ -188,14 +210,12 @@ public class ACS {
 				}
 			});
 			
-			System.out.println("커넥션 시작 ");
 			conn.connect();
 			conn.loginAnonymously();
 
 			int i = 0;
 
 			if ( conn.isConnected()) {
-				System.out.println("커넥션 완료 ");
 				IQ iq = new IQ() {
 					@Override
 					public String getChildElementXML() {
@@ -208,18 +228,17 @@ public class ACS {
 				iq.setType(Type.GET);
 				iq.setFrom("avsystem.com/prod/${?HOSTNAME}@avsystem.com/prod");
 				iq.setTo(stbId+"@stbxmpps.voo.be/stb");
-				iq.setPacketID(messageId);
+				iq.setPacketID( messageId + ++offset );
 				
 				
-				System.out.println(iq);
-				System.out.println("IQ SEND");
+				// System.out.println("send : " + iq);
 				conn.sendPacket(iq);
 			}
 			
 			while (conn.isConnected()) {
 				Thread.sleep(500);
 				i++;
-
+//				System.out.print(" " + i);
 				if (i > 10) {
 					break;
 				}
@@ -228,12 +247,14 @@ public class ACS {
 			System.out.println("종료");
 			conn.disconnect();
 			conn = null ;
-			System.exit(1);
+			// System.exit(1);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-
 	}
+	
+	
+	
 	// <iq type="result" 
 	// to="avsystem.com/prod/${?hostname}@avsystem.com/prod/6e6c2488f99d32cfc0b6c535cac4df85" 
 	// from="987654321@stbxmpps.voo.be/stb" id="ASDASD-0">
